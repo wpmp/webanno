@@ -27,6 +27,7 @@ import static de.tudarmstadt.ukp.clarin.webanno.ui.annotation.detail.AnnotationD
 import static java.util.Objects.isNull;
 import static org.apache.wicket.RuntimeConfigurationType.DEVELOPMENT;
 import static org.apache.wicket.util.string.Strings.escapeMarkup;
+import static org.apache.wicket.util.time.Duration.milliseconds;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,9 +53,13 @@ import org.apache.wicket.feedback.IFeedback;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.CheckBox;
+import org.apache.wicket.markup.html.form.CheckBoxMultipleChoice;
+import org.apache.wicket.markup.html.form.CheckGroup;
 import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.FormComponent;
+import org.apache.wicket.markup.html.form.RadioChoice;
 import org.apache.wicket.markup.html.form.RadioGroup;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.markup.repeater.RefreshingView;
@@ -67,7 +72,6 @@ import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.model.StringResourceModel;
 import org.apache.wicket.request.cycle.RequestCycle;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.apache.wicket.util.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -849,8 +853,15 @@ public class AnnotationFeatureForm
 
         private void addAnnotateActionBehavior(final FeatureEditor aFrag)
         {
-            if (aFrag.getFocusComponent() instanceof RadioGroup) {
-                aFrag.getFocusComponent().add(new AjaxFormChoiceComponentUpdatingBehavior()
+            FormComponent focusComponent = aFrag.getFocusComponent();
+            
+            if (
+                    (focusComponent instanceof RadioChoice) ||
+                    (focusComponent instanceof CheckBoxMultipleChoice) || 
+                    (focusComponent instanceof RadioGroup) ||
+                    (focusComponent instanceof CheckGroup)
+            ) {
+                focusComponent.add(new AjaxFormChoiceComponentUpdatingBehavior()
                 {
                     private static final long serialVersionUID = -5058365578109385064L;
 
@@ -869,7 +880,7 @@ public class AnnotationFeatureForm
                 });
             }
             else {
-                aFrag.getFocusComponent().add(new AjaxFormComponentUpdatingBehavior("change")
+                focusComponent.add(new AjaxFormComponentUpdatingBehavior("change")
                 {
                     private static final long serialVersionUID = 5179816588460867471L;
 
@@ -877,7 +888,7 @@ public class AnnotationFeatureForm
                     protected void updateAjaxAttributes(AjaxRequestAttributes aAttributes)
                     {
                         super.updateAjaxAttributes(aAttributes);
-                        addDelay(aFrag, aAttributes, 100);
+                        addDelay(aFrag, aAttributes, 250);
                     }
 
                     @Override
@@ -895,8 +906,7 @@ public class AnnotationFeatureForm
             // there is a race condition between the saving the value of the feature
             // editor and the loading of the new annotation. Delay the feature editor
             // save to give preference to loading the new annotation.
-            aAttributes.setThrottlingSettings(new ThrottlingSettings(getMarkupId(),
-                Duration.milliseconds(aDelay), true));
+            aAttributes.setThrottlingSettings(new ThrottlingSettings(milliseconds(aDelay), true));
             aAttributes.getAjaxCallListeners().add(new AjaxCallListener()
             {
                 private static final long serialVersionUID = 1L;
